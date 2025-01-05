@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "musicbrainz-api": "^0.19.1",
+    "mysql2": "^3.11.5"
+  }
+}
