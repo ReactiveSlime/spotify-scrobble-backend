@@ -206,7 +206,7 @@ async function fetchGenres(artist, track) {
   if (genres && genres.length > 0) {
     return genres;
   }
-  console.log('Falling back to MusicBrainz...');
+  console.log('\nFalling back to MusicBrainz...');
   genres = await fetchGenreFromMusicBrainz(artist, track);
   return genres || ['Unknown']; // Return 'Unknown' if no genre is found
 }
@@ -232,12 +232,12 @@ async function saveArtistsToDatabase(track, secondsPlayed) {
         ]
       );
       console.log(
-        `Artist saved to database:\n` +
-        `Artist: ${artist.trim()}\n` +
-        `Seconds Played: ${secondsPlayed}\n` +
-        `Played At: ${playedAt}\n` +
-        `Release Date: ${track.releaseDate || 'Unknown'}\n` +
-        `Playlist Name: ${track.playlistName || 'Unknown'}`
+        `\x1b[32mArtist saved to database:\n` +
+        `  Artist: ${artist.trim()}\n` +
+        `  Seconds Played: ${secondsPlayed}\n` +
+        `  Played At: ${playedAt}\n` +
+        `  Release Date: ${track.releaseDate || 'Unknown'}\n` +
+        `  Playlist Name: ${track.playlistName || 'Unknown'}\x1b[0m\n`
       );
     } catch (error) {
       console.error(`Error saving artist (${artist}) to database:`, error.message);
@@ -270,9 +270,15 @@ async function saveToDatabase(track, secondsPlayed, playbackDevice) {
     );
 
     console.log(
-      `\x1b[32m\nTrack saved to database:\nSong: ${track.song}\nArtists: ${track.artist}\nGenres: ${track.genres || 'Unknown'}\nPlayback Device: ${playbackDevice}\nPopularity: ${track.popularity}\nRelease Date: ${track.releaseDate}\nPlaylist Name: ${track.playlistName}\n\x1b[0m`
-    );    
-
+      `\x1b[32mTrack saved to database:\n` +
+      `  Song: ${track.song}\n` +
+      `  Artists: ${track.artist}\n` +
+      `  Genres: ${track.genres || 'Unknown'}\n` +
+      `  Playback Device: ${playbackDevice}\n` +
+      `  Popularity: ${track.popularity}\n` +
+      `  Release Date: ${track.releaseDate}\n` +
+      `  Playlist Name: ${track.playlistName}\x1b[0m\n`
+    );
   } catch (error) {
     console.error('Error saving to database:', error.message);
   }
@@ -310,7 +316,13 @@ async function saveOrUpdateTrack(track) {
         currentTrack.genres = genres.join(', ');
         const playbackDevice = await getPlaybackDevice();
         console.log(
-          `\nNow playing:\nSong: ${track.song}\nArtists: ${track.artist}\nTrack Duration: ${track.duration}\nGenres: ${genres.join(', ')}\nPlayback Device: ${playbackDevice}\nPopularity: ${track.popularity}\n`
+          `Now playing:\n` +
+          `  Song: ${track.song}\n` +
+          `  Artists: ${track.artist}\n` +
+          `  Track Duration: ${track.duration}\n` +
+          `  Genres: ${genres.join(', ')}\n` +
+          `  Playback Device: ${playbackDevice}\n` +
+          `  Popularity: ${track.popularity}\n`
         );
       });
     }
