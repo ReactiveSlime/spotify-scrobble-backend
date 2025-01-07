@@ -113,6 +113,7 @@ async function getCurrentTrack() {
     const song = track.name;
     const album = track.album.name;
     const artist = track.artists.map((artist) => artist.name).join(', ');
+    const artistUris = track.artists.map((artist) => artist.uri).join(', '); // New: artist URIs
     const duration = track.duration_ms;
     const releaseDate = track.album.release_date; // Fetch release date
     const playedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -120,13 +121,14 @@ async function getCurrentTrack() {
     const songUri = track.uri;
     const popularity = track.popularity;
 
-    // Attempt to fetch playlist name only if the song is new
+    // Attempt to fetch playlist name and URI only if the song is new
     const context = response.data.context;
     const playlistName = context && context.type === 'playlist' && track.name !== currentTrack?.song
       ? await getPlaylistName(context.href, accessToken)
       : 'Unknown';
+    const playlistUri = context ? context.uri : 'Unknown'; // New: playlist URI
 
-    return { song, album, artist, duration, releaseDate, playedAt, isPlaying, albumCoverUrl, songUri, popularity, playlistName };
+    return { song, album, artist, artistUris, duration, releaseDate, playedAt, isPlaying, albumCoverUrl, songUri, popularity, playlistName, playlistUri };
   } catch (error) {
     if (error.response && error.response.status === 401) {
       console.log('Access token expired. Refreshing and retrying...');
@@ -214,18 +216,37 @@ async function fetchGenres(artist, track) {
 // Save artist information to the database
 async function saveArtistsToDatabase(track, secondsPlayed) {
   const playedAt = track.playedAt;
-  const artists = track.artist.split(', '); // Split multiple artists
 
-  for (const artist of artists) {
+  // Ensure track.artistUris exists and is a string
+  if (!track.artistUris || typeof track.artistUris !== 'string') {
+    console.error('Track artistUris data is not available or invalid:', track);
+    return;
+  }
+
+  // Split the artist and artistUri data into arrays
+  const artists = track.artist.split(', '); // Artist names
+  const artistUris = track.artistUris.split(', '); // Corresponding artist URIs
+
+  // Check if both arrays have the same length
+  if (artists.length !== artistUris.length) {
+    console.error('Mismatch between artist names and URIs:', track);
+    return;
+  }
+
+  for (let i = 0; i < artists.length; i++) {
+    const artist = artists[i].trim();
+    const artistUri = artistUris[i].trim();
+
     try {
       await db.query(
-        `INSERT INTO artists (artist_name, seconds_played, played_at) 
-        VALUES (?, ?, ?) 
+        `INSERT INTO artists (artist_name, artist_uri, seconds_played, played_at) 
+        VALUES (?, ?, ?, ?) 
         ON DUPLICATE KEY UPDATE 
         seconds_played = seconds_played + ?, 
         played_at = GREATEST(played_at, VALUES(played_at))`,
         [
-          artist.trim(),
+          artist,
+          artistUri,
           secondsPlayed,
           playedAt,
           secondsPlayed,
@@ -233,7 +254,8 @@ async function saveArtistsToDatabase(track, secondsPlayed) {
       );
       console.log(
         `\x1b[32mArtist saved to database:\n` +
-        `  Artist: ${artist.trim()}\n` +
+        `  Artist: ${artist}\n` +
+        `  Artist URI: ${artistUri}\n` +
         `  Seconds Played: ${secondsPlayed}\n` +
         `  Played At: ${playedAt}\n` +
         `  Release Date: ${track.releaseDate || 'Unknown'}\n` +
@@ -250,8 +272,8 @@ async function saveToDatabase(track, secondsPlayed, playbackDevice) {
   try {
     await db.query(
       `INSERT INTO playbacks 
-      (song, album, artist, genres, duration_ms, seconds_played, played_at, album_cover_url, song_uri, track_popularity, playback_device, release_date, playlist_name) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (song, album, artist, genres, duration_ms, seconds_played, played_at, album_cover_url, song_uri, track_popularity, playback_device, release_date, playlist_name, playlist_uri) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         track.song,
         track.album,
@@ -266,6 +288,7 @@ async function saveToDatabase(track, secondsPlayed, playbackDevice) {
         playbackDevice,
         track.releaseDate, // New field: release date
         track.playlistName, // New field: playlist name
+        track.playlistUri  // New field: playlist URI
       ]
     );
 
@@ -277,7 +300,8 @@ async function saveToDatabase(track, secondsPlayed, playbackDevice) {
       `  Playback Device: ${playbackDevice}\n` +
       `  Popularity: ${track.popularity}\n` +
       `  Release Date: ${track.releaseDate}\n` +
-      `  Playlist Name: ${track.playlistName}\x1b[0m\n`
+      `  Playlist Name: ${track.playlistName}\n` +
+      `  Playlist URI: ${track.playlistUri}\x1b[0m\n`
     );
   } catch (error) {
     console.error('Error saving to database:', error.message);

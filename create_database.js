@@ -31,7 +31,8 @@ async function setupDatabase() {
         track_popularity INT,
         playback_device VARCHAR(255),
         release_date DATE,
-        playlist_name VARCHAR(255)
+        playlist_name VARCHAR(255),
+        playlist_uri VARCHAR(255)
       );
     `);
     console.log('Table `playbacks` setup completed.');
@@ -41,6 +42,7 @@ async function setupDatabase() {
       CREATE TABLE IF NOT EXISTS artists (
         id INT AUTO_INCREMENT PRIMARY KEY,
         artist_name VARCHAR(255) NOT NULL,
+        artist_uri VARCHAR(255) NOT NULL,
         seconds_played INT DEFAULT 0,
         played_at DATETIME NOT NULL
       );
